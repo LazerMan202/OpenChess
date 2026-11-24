@@ -1,162 +1,1067 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>OpenChess — Multiplayer Chess</title>
+<title>OpenChess V2</title>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/chess.js/0.10.3/chess.min.js"></script>
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+
 <style>
-:root{color-scheme:dark;--bg:#10151d;--panel:#1b2430;--panel2:#222e3c;--text:#edf2f7;--muted:#9eacbc;--accent:#70c1a1;--light:#eee5d5;--dark:#789477;--select:#e7c65b}
-*{box-sizing:border-box}body{margin:0;background:radial-gradient(circle at top,#1d2a38,#10151d 60%);color:var(--text);font:16px system-ui,Segoe UI,sans-serif;min-height:100vh}
-header{padding:20px 16px 8px;text-align:center}h1{margin:0;font-size:clamp(27px,5vw,42px);letter-spacing:1px}header p{margin:5px 0;color:var(--muted)}
-main{width:min(1100px,100%);margin:auto;padding:12px;display:grid;grid-template-columns:minmax(280px, min(62vw,620px)) minmax(260px,1fr);gap:18px;align-items:start}
-.panel{background:var(--panel);border:1px solid #344253;border-radius:16px;padding:14px;box-shadow:0 12px 35px #0004}
-#board{display:grid;grid-template-columns:repeat(8,1fr);width:100%;aspect-ratio:1;border:5px solid #293747;border-radius:7px;overflow:hidden;touch-action:manipulation}
-.square{border:0;border-radius:0;padding:0;position:relative;display:grid;place-items:center;aspect-ratio:1;font-size:clamp(25px,6.2vw,62px);line-height:1;cursor:pointer;color:#171717}
-.square.light{background:var(--light)}.square.dark{background:var(--dark)}
-.square.selected{box-shadow:inset 0 0 0 5px var(--select)}
-.square.last{background-image:linear-gradient(#f1d65c66,#f1d65c66)}
-.square.legal:after{content:"";position:absolute;width:23%;height:23%;border-radius:50%;background:#183e2c88}
-.square.capture:after{content:"";position:absolute;inset:5%;border:5px solid #183e2c88;border-radius:50%}
-.piece{z-index:1;filter:drop-shadow(0 2px 1px #0005);user-select:none}.coords{position:absolute;font-size:10px;font-weight:700;opacity:.7;left:4px;top:2px;z-index:2;color:#18221b}.file{left:auto;top:auto;right:4px;bottom:1px}
-.side{display:flex;flex-direction:column;gap:12px}.status{font-size:18px;font-weight:700}.muted{color:var(--muted);font-size:13px}.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-button,input{font:inherit}button{border:0;border-radius:9px;padding:10px 13px;background:var(--accent);color:#102019;font-weight:700;cursor:pointer}button.secondary{background:var(--panel2);color:var(--text);border:1px solid #405064}button:disabled{opacity:.4;cursor:not-allowed}input{min-width:0;width:100%;background:#101923;color:var(--text);border:1px solid #405064;border-radius:9px;padding:10px}
-label{display:block;font-size:13px;color:var(--muted);margin-bottom:5px}.field{flex:1;min-width:120px}
-#moves{max-height:220px;overflow:auto;background:#111a24;border-radius:9px;padding:9px;font-variant-numeric:tabular-nums;line-height:1.8}
-.move{display:inline-block;padding:1px 5px;border-radius:5px}.move.current{background:#3c6658}
-#connection{font-size:14px;color:var(--muted);line-height:1.5}#notice{min-height:20px;color:#f0cf75;font-size:13px}
-#promotion{display:none;gap:7px;flex-wrap:wrap;margin-top:8px}#promotion button{font-size:24px;padding:5px 12px}
-hr{border:0;border-top:1px solid #344253;margin:5px 0}
-@media(max-width:760px){main{grid-template-columns:1fr;max-width:620px}.side{display:grid;grid-template-columns:1fr}#board{max-width:620px;margin:auto}.square{font-size:clamp(29px,10vw,58px)}}
+:root {
+    --bg: #101720;
+    --panel: #1c2734;
+    --panel2: #263444;
+    --text: #edf2f7;
+    --muted: #9eacbc;
+    --accent: #70c1a1;
+    --light: #eee5d5;
+    --dark: #789477;
+    --select: #e7c65b;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    min-height: 100vh;
+    background: radial-gradient(circle at top, #26384a, var(--bg) 65%);
+    color: var(--text);
+    font-family: system-ui, sans-serif;
+}
+
+header {
+    text-align: center;
+    padding: 22px 12px 12px;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 38px;
+}
+
+header p {
+    color: var(--muted);
+    margin: 5px;
+}
+
+main {
+    width: min(1100px, 100%);
+    margin: auto;
+    padding: 12px;
+    display: grid;
+    grid-template-columns: minmax(0, 620px) minmax(0, 1fr);
+    gap: 18px;
+    align-items: start;
+}
+
+.panel {
+    min-width: 0;
+    max-width: 100%;
+    background: var(--panel);
+    border: 1px solid #344253;
+    border-radius: 15px;
+    padding: 14px;
+    box-shadow: 0 10px 30px #0004;
+}
+
+.side {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+#board {
+    display: grid;
+    grid-template-columns: repeat(8, minmax(0, 1fr));
+    grid-template-rows: repeat(8, minmax(0, 1fr));
+    width: min(100%, 620px);
+    max-width: 100%;
+    min-width: 0;
+    aspect-ratio: 1;
+    margin: auto;
+    border: 5px solid #293747;
+    border-radius: 7px;
+    overflow: hidden;
+    touch-action: manipulation;
+}
+
+.square {
+    border: 0;
+    border-radius: 0;
+    padding: 0;
+    min-width: 0;
+    min-height: 0;
+    aspect-ratio: 1;
+    display: grid;
+    place-items: center;
+    position: relative;
+    font-size: clamp(24px, 6vw, 60px);
+    cursor: pointer;
+    line-height: 1;
+}
+
+.light { background: var(--light); }
+.dark { background: var(--dark); }
+
+.square.selected {
+    box-shadow: inset 0 0 0 5px var(--select);
+}
+
+.square.last {
+    background-image: linear-gradient(#f1d65c66, #f1d65c66);
+}
+
+.square.legal::after {
+    content: "";
+    position: absolute;
+    width: 23%;
+    height: 23%;
+    border-radius: 50%;
+    background: #183e2c88;
+}
+
+.square.capture::after {
+    content: "";
+    position: absolute;
+    inset: 5%;
+    border: 5px solid #183e2c88;
+    border-radius: 50%;
+}
+
+.piece {
+    z-index: 1;
+    filter: drop-shadow(0 2px 1px #0005);
+    user-select: none;
+    pointer-events: none;
+}
+
+.coords {
+    position: absolute;
+    top: 2px;
+    left: 4px;
+    font-size: 10px;
+    font-weight: bold;
+    color: #18221b;
+    opacity: .7;
+    z-index: 2;
+}
+
+.coords.file {
+    top: auto;
+    left: auto;
+    bottom: 1px;
+    right: 4px;
+}
+
+.row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+
+button {
+    border: 0;
+    border-radius: 9px;
+    padding: 10px 13px;
+    background: var(--accent);
+    color: #102019;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+button.secondary {
+    background: var(--panel2);
+    color: var(--text);
+    border: 1px solid #405064;
+}
+
+button:disabled {
+    opacity: .4;
+    cursor: not-allowed;
+}
+
+input {
+    width: 100%;
+    min-width: 0;
+    padding: 11px;
+    border-radius: 9px;
+    background: #101923;
+    border: 1px solid #405064;
+    color: white;
+    font-size: 16px;
+}
+
+label {
+    display: block;
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 5px;
+}
+
+.field {
+    flex: 1;
+    min-width: 120px;
+}
+
+.status {
+    font-weight: bold;
+    font-size: 19px;
+}
+
+.muted {
+    color: var(--muted);
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+#moves {
+    background: #111a24;
+    border-radius: 9px;
+    padding: 10px;
+    min-height: 45px;
+    max-height: 240px;
+    overflow-y: auto;
+    line-height: 1.9;
+    font-variant-numeric: tabular-nums;
+}
+
+.move {
+    display: inline-block;
+    padding: 1px 5px;
+    border-radius: 5px;
+}
+
+.move.current {
+    background: #3c6658;
+}
+
+#notice {
+    min-height: 20px;
+    color: #f0cf75;
+    font-size: 13px;
+    margin-top: 8px;
+}
+
+#promotion {
+    display: none;
+    gap: 7px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+}
+
+#promotion button {
+    font-size: 25px;
+    padding: 5px 12px;
+}
+
+hr {
+    border: 0;
+    border-top: 1px solid #344253;
+    margin: 12px 0;
+}
+
+@media(max-width: 760px) {
+    main {
+        grid-template-columns: minmax(0, 1fr);
+        max-width: 620px;
+    }
+
+    .side {
+        display: flex;
+    }
+
+    #board {
+        width: min(100%, 620px);
+    }
+
+    .square {
+        font-size: clamp(25px, 9vw, 58px);
+    }
+}
 </style>
 </head>
+
 <body>
-<header><h1>♟ OpenChess</h1><p>Play chess online with a friend — no account required.</p></header>
+
+<header>
+    <h1>♟ OpenChess</h1>
+    <p>Online chess. Simple. Free. Multiplayer.</p>
+</header>
+
 <main>
+
 <section class="panel">
- <div class="row" style="justify-content:space-between;margin-bottom:10px"><strong id="youAre">Not connected</strong><span class="muted" id="turn">White to move</span></div>
- <div id="board" aria-label="Chess board"></div>
- <div id="promotion" class="row"><span>Promote to:</span><button data-piece="q">♕</button><button data-piece="r">♖</button><button data-piece="b">♗</button><button data-piece="n">♘</button></div>
- <div class="row" style="margin-top:12px"><button class="secondary" id="newGame">New game</button><button class="secondary" id="flip">Flip board</button><button class="secondary" id="copyFen">Copy FEN</button></div>
+
+    <div class="row" style="justify-content:space-between;margin-bottom:12px">
+        <strong id="youAre">Not connected</strong>
+        <span class="muted" id="turn">White to move</span>
+    </div>
+
+    <div id="board"></div>
+
+    <div id="promotion" class="row">
+        <span>Promote to:</span>
+        <button data-piece="q">♕</button>
+        <button data-piece="r">♖</button>
+        <button data-piece="b">♗</button>
+        <button data-piece="n">♘</button>
+    </div>
+
+    <div class="row" style="margin-top:12px">
+        <button class="secondary" id="newGame">New game</button>
+        <button class="secondary" id="flip">Flip board</button>
+        <button class="secondary" id="copyFen">Copy FEN</button>
+    </div>
+
 </section>
+
 <aside class="side">
- <section class="panel">
-  <div class="status" id="status">Create a room or join a friend.</div><p class="muted" id="substatus">One player hosts; the other joins using the room code.</p>
-  <hr>
-  <div class="row"><button id="host">Create room</button><button id="disconnect" class="secondary" disabled>Disconnect</button></div>
-  <div style="margin-top:12px"><label for="roomCode">Room code</label><input id="roomCode" autocomplete="off" placeholder="Enter your friend's code"></div>
-  <div class="row" style="margin-top:8px"><button id="join">Join room</button><button class="secondary" id="copyCode" disabled>Copy code</button></div>
-  <p id="connection">Not connected. Create a room to get a code.</p><div id="notice"></div>
- </section>
- <section class="panel">
-  <strong>Moves</strong><div id="moves" style="margin-top:8px">No moves yet.</div>
- </section>
- <section class="panel">
-  <strong>How it works</strong>
-  <ol class="muted" style="padding-left:20px;line-height:1.6"><li>One person clicks <b>Create room</b>.</li><li>Send the room code to your opponent.</li><li>They enter it and click <b>Join room</b>.</li><li>White moves first. The host is White.</li></ol>
-  <p class="muted">Both players need internet and must keep the page open. This uses PeerJS's public signaling service; connection availability depends on that service and the players' networks.</p>
- </section>
+
+<section class="panel">
+
+    <div class="status" id="status">
+        Welcome to OpenChess!
+    </div>
+
+    <p class="muted" id="substatus">
+        Create a room or join a friend's game.
+    </p>
+
+    <hr>
+
+    <div class="row">
+        <button id="host">Create room</button>
+        <button id="disconnect" class="secondary" disabled>
+            Disconnect
+        </button>
+    </div>
+
+    <div style="margin-top:13px">
+        <label for="roomCode">Room code</label>
+        <input id="roomCode" placeholder="OC-482193" autocomplete="off">
+    </div>
+
+    <div class="row" style="margin-top:9px">
+        <button id="join">Join room</button>
+        <button id="copyCode" class="secondary" disabled>
+            Copy code
+        </button>
+    </div>
+
+    <p id="connection" class="muted">
+        Not connected.
+    </p>
+
+    <div id="notice"></div>
+
+</section>
+
+<section class="panel">
+
+    <strong>Move history</strong>
+    <div id="moves" style="margin-top:9px">
+        No moves yet.
+    </div>
+
+</section>
+
+<section class="panel">
+
+    <strong>How to play online</strong>
+
+    <ol class="muted" style="padding-left:20px">
+        <li>Player 1 creates a room.</li>
+        <li>Share the room code.</li>
+        <li>Player 2 enters the code.</li>
+        <li>Start playing!</li>
+    </ol>
+
+    <p class="muted">
+        Host plays White. Guest plays Black.
+        Both players need an internet connection.
+    </p>
+
+</section>
+
 </aside>
 </main>
+
 <script>
 (() => {
- const $=id=>document.getElementById(id);
- const chess=new Chess();
- const files='abcdefgh', glyph={wk:'♔',wq:'♕',wr:'♖',wb:'♗',wn:'♘',wp:'♙',bk:'♚',bq:'♛',br:'♜',bb:'♝',bn:'♞',bp:'♟︎'};
- let peer=null,conn=null,role=null,connected=false,selected=null,legal=[],flipped=false,pendingPromotion=null,lastMove=null,gameOver=false;
- const isMyTurn=()=>connected && chess.turn()===(role==='host'?'w':'b');
- const say=(msg)=>$('notice').textContent=msg;
- const setStatus=(a,b)=>{$('status').textContent=a;$('substatus').textContent=b||''};
- function render(){
-  const board=$('board');board.innerHTML='';
-  const ranks=flipped?[1,2,3,4,5,6,7,8]:[8,7,6,5,4,3,2,1];
-  const cols=flipped?[...files].reverse():[...files];
-  ranks.forEach((rank,ri)=>cols.forEach((file,ci)=>{
-   const sq=file+rank,piece=chess.get(sq),btn=document.createElement('button');
-   btn.className='square '+(((files.indexOf(file)+rank)%2===0)?'light':'dark');
-   if(selected===sq)btn.classList.add('selected');
-   if(lastMove&&(lastMove.from===sq||lastMove.to===sq))btn.classList.add('last');
-   const move=legal.find(m=>m.to===sq);
-   if(move)btn.classList.add(piece?'capture':'legal');
-   if(piece){const span=document.createElement('span');span.className='piece';span.textContent=glyph[piece.color+piece.type];btn.append(span)}
-   if(ci===0){const c=document.createElement('span');c.className='coords';c.textContent=rank;btn.append(c)}
-   if(ri===7){const c=document.createElement('span');c.className='coords file';c.textContent=file;btn.append(c)}
-   btn.addEventListener('click',()=>clickSquare(sq));board.append(btn);
-  }));
-  $('turn').textContent=chess.turn()==='w'?'White to move':'Black to move';
-  $('youAre').textContent=role?(role==='host'?'You are White':'You are Black'):'Not connected';
-  $('moves').innerHTML='';
-  const history=chess.history();
-  if(!history.length)$('moves').textContent='No moves yet.';
-  else {history.forEach((m,i)=>{if(i%2===0){const n=document.createElement('b');n.textContent=(Math.floor(i/2)+1)+'. ';$('moves').append(n)}const s=document.createElement('span');s.className='move'+(i===history.length-1?' current':'');s.textContent=m+' ';$('moves').append(s)})}
-  if(chess.game_over()){gameOver=true;setStatus(chess.in_checkmate()?'Checkmate — '+(chess.turn()==='w'?'Black':'White')+' wins':chess.in_stalemate()?'Draw — stalemate':chess.in_draw()?'Draw':'Game over','Start a new game to play again.')}
-  else {gameOver=false;setStatus(chess.in_check()?'Check! '+(chess.turn()==='w'?'White':'Black')+' to move':(chess.turn()==='w'?'White':'Black')+' to move',connected?(isMyTurn()?'Your turn':'Waiting for opponent'):'Connect to another player to play online.')}
-  $('newGame').disabled=!connected;
- }
- function refreshLegal(){legal=isMyTurn()&&!gameOver&&selected?chess.moves({square:selected,verbose:true}):[]}
- function clickSquare(sq){
-  if(!isMyTurn()||gameOver||pendingPromotion)return;
-  const p=chess.get(sq);
-  if(selected&&legal.some(m=>m.to===sq)){
-   const candidate=legal.find(m=>m.to===sq);
-   if(candidate.flags.includes('p')){pendingPromotion={from:selected,to:sq};$('promotion').style.display='flex';return}
-   makeMove({from:selected,to:sq});return;
-  }
-  if(p&&p.color===(role==='host'?'w':'b')){selected=sq;refreshLegal();render();return}
-  selected=null;legal=[];render();
- }
- function makeMove(move){
-  const result=chess.move(move);
-  if(!result){say('That move is not legal.');return}
-  selected=null;legal=[];pendingPromotion=null;$('promotion').style.display='none';lastMove={from:result.from,to:result.to};
-  if(conn&&conn.open)conn.send({type:'move',move:{from:result.from,to:result.to,promotion:result.promotion||'q'}});
-  say('');render();
- }
- document.querySelectorAll('#promotion button').forEach(b=>b.addEventListener('click',()=>{if(!pendingPromotion)return;makeMove({...pendingPromotion,promotion:b.dataset.piece})}));
- function receive(data){
-  if(!data||typeof data!=='object')return;
-  if(data.type==='move'&&role==='host'&&chess.turn()==='b')applyRemote(data.move);
-  else if(data.type==='move'&&role==='guest'&&chess.turn()==='w')applyRemote(data.move);
-  else if(data.type==='sync'&&role==='guest'){try{chess.load(data.fen);lastMove=data.lastMove||null;render();say('Game synchronized.')}catch(e){say('Could not sync game state.')}}
-  else if(data.type==='newgame'){chess.reset();lastMove=null;selected=null;render();say('New game started.')}
- }
- function applyRemote(move){
-  const result=chess.move(move);
-  if(!result){say('Received an invalid move; game paused.');return}
-  lastMove={from:result.from,to:result.to};selected=null;legal=[];render();
- }
- function setupConnection(c,isHost){
-  conn=c;role=isHost?'host':'guest';
-  conn.on('open',()=>{connected=true;$('disconnect').disabled=false;$('copyCode').disabled=!isHost;$('join').disabled=true;$('host').disabled=true;
-   $('connection').textContent=isHost?'Room ready. Share the code above.':'Connected to host. You are Black.';
-   if(isHost){$('roomCode').value=peer.id;$('copyCode').disabled=false}else{conn.send({type:'sync',fen:chess.fen(),lastMove})}
-   say('Connected!');render();
-  });
-  conn.on('data',receive);
-  conn.on('close',()=>{connected=false;conn=null;role=null;$('connection').textContent='Opponent disconnected.';$('disconnect').disabled=true;$('join').disabled=false;$('host').disabled=false;$('copyCode').disabled=true;render();setStatus('Connection lost','You can create or join another room.')});
-  conn.on('error',e=>say('Connection error: '+e.type));
- }
- $('host').onclick=()=>{
-  if(peer)peer.destroy();setStatus('Creating room…','Connecting to the signaling service.');say('');
-  peer=new Peer(undefined,{debug:1});
-  peer.on('open',id=>{$('roomCode').value=id;$('connection').textContent='Room created. Waiting for your opponent…';$('copyCode').disabled=false;$('host').disabled=true;$('join').disabled=true;role='host';$('youAre').textContent='You are White';peer.on('connection',c=>{if(conn){c.close();return}setupConnection(c,true)});render()});
-  peer.on('error',e=>{say('Could not create room: '+e.type);$('host').disabled=false;$('join').disabled=false});
- };
- $('join').onclick=()=>{
-  const id=$('roomCode').value.trim();if(!id){say('Enter a room code first.');return}
-  if(peer)peer.destroy();setStatus('Joining room…','Trying to connect to the host.');say('');
-  peer=new Peer(undefined,{debug:1});
-  peer.on('open',()=>setupConnection(peer.connect(id,{reliable:true} ),false));
-  peer.on('error',e=>{say('Could not join: '+e.type+'. Check the code and try again.');$('host').disabled=false;$('join').disabled=false});
- };
- $('disconnect').onclick=()=>{if(conn)conn.close();if(peer)peer.destroy();peer=null;conn=null;connected=false;role=null;$('host').disabled=false;$('join').disabled=false;$('disconnect').disabled=true;$('copyCode').disabled=true;$('connection').textContent='Disconnected.';chess.reset();lastMove=null;selected=null;render()};
- $('copyCode').onclick=async()=>{try{await navigator.clipboard.writeText($('roomCode').value);say('Room code copied.')}catch(e){say('Select and copy the room code manually.')}};
- $('newGame').onclick=()=>{if(!connected)return;chess.reset();lastMove=null;selected=null;legal=[];conn.send({type:'newgame'});render();say('New game started.')};
- $('flip').onclick=()=>{flipped=!flipped;render()};
- $('copyFen').onclick=async()=>{try{await navigator.clipboard.writeText(chess.fen());say('Position FEN copied.')}catch(e){say(chess.fen())}};
- render();
+
+const $ = id => document.getElementById(id);
+
+const chess = new Chess();
+
+const glyph = {
+    wk:"♔", wq:"♕", wr:"♖", wb:"♗", wn:"♘", wp:"♙",
+    bk:"♚", bq:"♛", br:"♜", bb:"♝", bn:"♞", bp:"♟︎"
+};
+
+let peer = null;
+let conn = null;
+let role = null;
+let connected = false;
+let selected = null;
+let legal = [];
+let flipped = false;
+let pendingPromotion = null;
+let lastMove = null;
+let connectionTimer = null;
+let peerTimer = null;
+
+function say(message) {
+    $("notice").textContent = message;
+}
+
+function setStatus(a,b) {
+    $("status").textContent = a;
+    $("substatus").textContent = b || "";
+}
+
+function isMyTurn() {
+    return connected &&
+        chess.turn() === (role === "host" ? "w" : "b");
+}
+
+function showRoomCode(id) {
+    return "OC-" + id.slice(2);
+}
+
+function makeRoomId() {
+    return "oc" + Math.floor(
+        100000 + Math.random() * 900000
+    );
+}
+
+function clearTimers() {
+    clearTimeout(connectionTimer);
+    clearTimeout(peerTimer);
+}
+
+function render() {
+
+    const board = $("board");
+    board.innerHTML = "";
+
+    const ranks = flipped
+        ? [1,2,3,4,5,6,7,8]
+        : [8,7,6,5,4,3,2,1];
+
+    const files = flipped
+        ? "hgfedcba"
+        : "abcdefgh";
+
+    ranks.forEach((rank, ri) => {
+
+        [...files].forEach((file, ci) => {
+
+            const square = file + rank;
+            const piece = chess.get(square);
+
+            const button = document.createElement("button");
+
+            button.className = "square " +
+                ((("abcdefgh".indexOf(file) + rank) % 2 === 0)
+                    ? "light" : "dark");
+
+            if (selected === square)
+                button.classList.add("selected");
+
+            if (lastMove &&
+                (lastMove.from === square ||
+                 lastMove.to === square)) {
+                button.classList.add("last");
+            }
+
+            const move = legal.find(m => m.to === square);
+
+            if (move)
+                button.classList.add(piece ? "capture" : "legal");
+
+            if (piece) {
+                const span = document.createElement("span");
+                span.className = "piece";
+                span.textContent = glyph[piece.color + piece.type];
+                button.append(span);
+            }
+
+            if (ci === 0) {
+                const c = document.createElement("span");
+                c.className = "coords";
+                c.textContent = rank;
+                button.append(c);
+            }
+
+            if (ri === 7) {
+                const c = document.createElement("span");
+                c.className = "coords file";
+                c.textContent = file;
+                button.append(c);
+            }
+
+            button.addEventListener("click", () => {
+                clickSquare(square);
+            });
+
+            board.append(button);
+
+        });
+    });
+
+    $("turn").textContent =
+        chess.turn() === "w" ? "White to move" : "Black to move";
+
+    $("youAre").textContent =
+        role ? (role === "host" ? "You are White" : "You are Black")
+             : "Not connected";
+
+    renderHistory();
+
+    if (chess.game_over()) {
+        if (chess.in_checkmate()) {
+            setStatus(
+                "Checkmate!",
+                (chess.turn() === "w" ? "Black" : "White") + " wins."
+            );
+        } else if (chess.in_stalemate()) {
+            setStatus("Draw!", "Stalemate.");
+        } else if (chess.in_threefold_repetition()) {
+            setStatus("Draw!", "Threefold repetition.");
+        } else if (chess.insufficient_material()) {
+            setStatus("Draw!", "Insufficient material.");
+        } else {
+            setStatus("Draw!", "Game drawn.");
+        }
+    } else {
+        setStatus(
+            chess.in_check()
+                ? "Check!"
+                : (chess.turn() === "w" ? "White" : "Black") + " to move",
+            connected
+                ? (isMyTurn() ? "Your turn" : "Waiting for opponent")
+                : "Connect to another player to play online."
+        );
+    }
+
+    $("newGame").disabled = !connected;
+}
+
+function renderHistory() {
+
+    const box = $("moves");
+    box.innerHTML = "";
+
+    const history = chess.history();
+
+    if (!history.length) {
+        box.textContent = "No moves yet.";
+        return;
+    }
+
+    history.forEach((move, i) => {
+
+        if (i % 2 === 0) {
+            const number = document.createElement("b");
+            number.textContent = (Math.floor(i / 2) + 1) + ". ";
+            box.append(number);
+        }
+
+        const span = document.createElement("span");
+        span.className = "move" +
+            (i === history.length - 1 ? " current" : "");
+
+        span.textContent = move + " ";
+        box.append(span);
+
+    });
+
+    box.scrollTop = box.scrollHeight;
+}
+
+function refreshLegal() {
+    legal = isMyTurn() && selected && !chess.game_over()
+        ? chess.moves({square:selected, verbose:true})
+        : [];
+}
+
+function clickSquare(square) {
+
+    if (!isMyTurn() || chess.game_over() || pendingPromotion)
+        return;
+
+    const piece = chess.get(square);
+
+    if (selected && legal.some(m => m.to === square)) {
+
+        const move = legal.find(m => m.to === square);
+
+        if (move.flags.includes("p")) {
+            pendingPromotion = {
+                from:selected,
+                to:square
+            };
+
+            $("promotion").style.display = "flex";
+            return;
+        }
+
+        makeMove({
+            from:selected,
+            to:square
+        });
+
+        return;
+    }
+
+    if (piece && piece.color === (role === "host" ? "w" : "b")) {
+        selected = square;
+        refreshLegal();
+        render();
+        return;
+    }
+
+    selected = null;
+    legal = [];
+    render();
+}
+
+function makeMove(move) {
+
+    const result = chess.move(move);
+
+    if (!result) {
+        say("Illegal move.");
+        return;
+    }
+
+    selected = null;
+    legal = [];
+    pendingPromotion = null;
+
+    $("promotion").style.display = "none";
+
+    lastMove = {
+        from:result.from,
+        to:result.to
+    };
+
+    if (conn && conn.open) {
+        conn.send({
+            type:"move",
+            move:{
+                from:result.from,
+                to:result.to,
+                promotion:result.promotion || "q"
+            }
+        });
+    }
+
+    say("");
+    render();
+}
+
+document.querySelectorAll("#promotion button").forEach(button => {
+
+    button.addEventListener("click", () => {
+
+        if (!pendingPromotion) return;
+
+        makeMove({
+            from:pendingPromotion.from,
+            to:pendingPromotion.to,
+            promotion:button.dataset.piece
+        });
+
+    });
+
+});
+
+function receive(data) {
+
+    if (!data || typeof data !== "object")
+        return;
+
+    if (data.type === "move") {
+
+        const expected = role === "host" ? "b" : "w";
+
+        if (chess.turn() !== expected)
+            return;
+
+        const result = chess.move(data.move);
+
+        if (!result) {
+            say("Invalid incoming move.");
+            return;
+        }
+
+        selected = null;
+        legal = [];
+
+        lastMove = {
+            from:result.from,
+            to:result.to
+        };
+
+        render();
+    }
+
+    if (data.type === "sync" && role === "guest") {
+
+        if (typeof data.fen !== "string")
+            return;
+
+        if (!chess.load(data.fen)) {
+            say("Could not synchronize the game.");
+            return;
+        }
+
+        lastMove = data.lastMove || null;
+        render();
+        say("Game synchronized.");
+    }
+
+    if (data.type === "newgame") {
+        chess.reset();
+        lastMove = null;
+        selected = null;
+        legal = [];
+        render();
+        say("New game started.");
+    }
+}
+
+function setupConnection(c, isHost) {
+
+    conn = c;
+    role = isHost ? "host" : "guest";
+
+    clearTimeout(connectionTimer);
+
+    connectionTimer = setTimeout(() => {
+        if (!connected && conn === c) {
+            say("Connection timed out. Check your internet and try again.");
+            c.close();
+        }
+    }, 12000);
+
+    conn.on("open", () => {
+
+        clearTimeout(connectionTimer);
+
+        connected = true;
+
+        $("disconnect").disabled = false;
+        $("copyCode").disabled = !isHost;
+
+        $("host").disabled = true;
+        $("join").disabled = true;
+
+        $("connection").textContent = isHost
+            ? "Room ready. Share the code above."
+            : "Connected! You are Black.";
+
+        if (isHost) {
+            $("roomCode").value = showRoomCode(peer.id);
+        } else {
+            conn.send({
+                type:"sync",
+                fen:chess.fen(),
+                lastMove:lastMove
+            });
+        }
+
+        say("Connected!");
+        render();
+
+    });
+
+    conn.on("data", receive);
+
+    conn.on("close", () => {
+
+        clearTimeout(connectionTimer);
+
+        connected = false;
+        conn = null;
+        role = null;
+
+        $("disconnect").disabled = true;
+        $("host").disabled = false;
+        $("join").disabled = false;
+        $("copyCode").disabled = true;
+
+        $("connection").textContent = "Opponent disconnected.";
+
+        render();
+
+        setStatus("Connection lost", "Reconnect or create a new room.");
+
+    });
+
+    conn.on("error", e => {
+        say("Connection error: " + e.type);
+    });
+}
+
+function createPeer(id) {
+
+    return new Peer(id, {
+        host:"0.peerjs.com",
+        port:443,
+        path:"/",
+        secure:true,
+        debug:0
+    });
+
+}
+
+$("host").onclick = () => {
+
+    if (peer) peer.destroy();
+
+    clearTimers();
+
+    setStatus("Creating room...", "Contacting connection service.");
+    say("");
+
+    $("host").disabled = true;
+    $("join").disabled = true;
+
+    let attempts = 0;
+
+    function createRoom() {
+
+        const id = makeRoomId();
+
+        peer = createPeer(id);
+
+        peerTimer = setTimeout(() => {
+
+            if (peer && !peer.open) {
+
+                say("Connection service timed out. Try again.");
+
+                peer.destroy();
+                peer = null;
+
+                $("host").disabled = false;
+                $("join").disabled = false;
+
+            }
+
+        }, 10000);
+
+        peer.on("open", () => {
+
+            clearTimeout(peerTimer);
+
+            $("roomCode").value = showRoomCode(id);
+
+            $("connection").textContent =
+                "Waiting for your opponent...";
+
+            $("copyCode").disabled = false;
+            $("host").disabled = true;
+            $("join").disabled = true;
+
+            role = "host";
+
+            $("youAre").textContent = "You are White";
+
+            peer.on("connection", c => {
+
+                if (conn) {
+                    c.close();
+                    return;
+                }
+
+                setupConnection(c, true);
+
+            });
+
+            render();
+
+        });
+
+        peer.on("error", e => {
+
+            clearTimeout(peerTimer);
+
+            if (e.type === "unavailable-id" && attempts++ < 5) {
+
+                peer.destroy();
+                peer = null;
+
+                createRoom();
+                return;
+
+            }
+
+            say("Could not create room: " + e.type);
+
+            $("host").disabled = false;
+            $("join").disabled = false;
+
+        });
+
+    }
+
+    createRoom();
+
+};
+
+$("join").onclick = () => {
+
+    const entered = $("roomCode").value.trim().toLowerCase();
+    const id = entered.replace(/[^a-z0-9]/g, "");
+
+    if (!/^oc[0-9]{6}$/.test(id)) {
+        say("Enter a valid code, e.g. OC-482193.");
+        return;
+    }
+
+    if (peer) peer.destroy();
+
+    clearTimers();
+
+    setStatus("Joining room...", "Connecting to host.");
+    say("");
+
+    $("host").disabled = true;
+    $("join").disabled = true;
+
+    peer = createPeer(undefined);
+
+    peerTimer = setTimeout(() => {
+
+        if (peer && !peer.open) {
+
+            say("Connection service timed out. Try again.");
+
+            peer.destroy();
+            peer = null;
+
+            $("host").disabled = false;
+            $("join").disabled = false;
+
+        }
+
+    }, 10000);
+
+    peer.on("open", () => {
+
+        clearTimeout(peerTimer);
+
+        const c = peer.connect(id, {
+            reliable:true
+        });
+
+        setupConnection(c, false);
+
+    });
+
+    peer.on("error", e => {
+
+        clearTimeout(peerTimer);
+
+        say("Could not join: " + e.type + ". Check the code.");
+
+        $("host").disabled = false;
+        $("join").disabled = false;
+
+    });
+
+};
+
+$("disconnect").onclick = () => {
+
+    clearTimers();
+
+    if (conn) conn.close();
+    if (peer) peer.destroy();
+
+    peer = null;
+    conn = null;
+    connected = false;
+    role = null;
+
+    chess.reset();
+
+    selected = null;
+    legal = [];
+    lastMove = null;
+
+    $("host").disabled = false;
+    $("join").disabled = false;
+    $("disconnect").disabled = true;
+    $("copyCode").disabled = true;
+
+    $("connection").textContent = "Disconnected.";
+
+    render();
+
+};
+
+$("copyCode").onclick = async () => {
+
+    try {
+        await navigator.clipboard.writeText($("roomCode").value);
+        say("Room code copied!");
+    } catch(e) {
+        say("Select and copy the room code manually.");
+    }
+
+};
+
+$("newGame").onclick = () => {
+
+    if (!connected) return;
+
+    chess.reset();
+
+    selected = null;
+    legal = [];
+    lastMove = null;
+
+    conn.send({type:"newgame"});
+
+    render();
+
+    say("New game started!");
+
+};
+
+$("flip").onclick = () => {
+
+    flipped = !flipped;
+    render();
+
+};
+
+$("copyFen").onclick = async () => {
+
+    try {
+        await navigator.clipboard.writeText(chess.fen());
+        say("FEN copied!");
+    } catch(e) {
+        say(chess.fen());
+    }
+
+};
+
+render();
+
 })();
 </script>
+
 </body>
 </html>
